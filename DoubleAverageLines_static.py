@@ -166,6 +166,7 @@ class DoubleAverageLines:
         s1 = maX < maY  # 得到 bool 类型的 Series
         s2 = maX > maY
 
+        #短期均线向上穿越长期均线叫金叉，反之短期均线向下穿越长期均线为死叉。
         death_ex = s1 & s2.shift(1)  # 判定死叉的条件
         death_date = df.loc[death_ex].index  # 死叉对应的日期
 
@@ -195,7 +196,7 @@ class DoubleAverageLines:
                 open_time = df.loc[time]['openTime']  # 开盘时间
                 close_time = df.loc[time]['closeTime']  # 收盘时间
 
-
+                # 交叉刚好在最后一个K线才执行买入（有骗炮风险，建议改成交叉后下个时间点）
                 isRightTime = self.judgeCurrentTimeWithLastRecordTime(str(open_time), str(close_time))
 
 
