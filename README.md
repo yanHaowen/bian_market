@@ -1,51 +1,10 @@
-# binance-quant-robot
-数字货币，币安Binance, 比特币BTC 以太坊ETH 莱特币LTC 狗币DOGE 屎币SHIB 量化交易系统 火币 OKEX 交易策略 量化策略 自动交易
-
-
-
-## 简介
-这是一个数字货币量化交易系统，使用的Binance币安的交易API.
-
-如果你还没有币安账号：[注册页面](https://accounts.binancezh.io/zh-CN/register?ref=FJO3SX0X)（通过链接注册，享受交易返现优惠政策）
-
-这世上，没有百分百赚钱的方式，量化交易策略只是一个辅助工具。
-
-生死有命，富贵在天！币圈有风险，入市需谨慎！！
-
-## 双均线策略
-以 ETH 为例，5分钟K线数据，均线5 和 均线60 为例：
-
-均线5上穿均线60是金叉，执行买入；
-均线5下穿均线60是死叉，执行卖出；
-![image](https://user-images.githubusercontent.com/18456518/119827775-18c59400-bf2c-11eb-821b-addda37b3b4a.png)
-这是一个比较好的情况，可以赚一点钱。
-
-<img width="1643" alt="image" src="https://user-images.githubusercontent.com/18456518/119828150-7b1e9480-bf2c-11eb-9443-d0d6c1f387ab.png">
-这是一个比较震荡的情况，会亏损。
-
-
-使用时，必须根据自身情况，调整 K线 和 均线！！！！
-
-
-如果你还没有币安账号：[注册页面](https://accounts.binancezh.io/zh-CN/register?ref=FJO3SX0X)（通过链接注册，享受交易返现优惠政策）
-
-## 为什么选择币安交易所
-交易的手续费看起来很少，但是随着交易次数逐步增多，手续费也是一笔不小的开支。
-所以我选择了币安，手续费低的大平台交易所
-> 火币手续费 Maker 0.2% Taker 0.2%
-
-> 币安手续费 Maker 0.1% Taker 0.1% （加上BNB家持手续费低至0.075%）
-
-
-如果你还没有币安账号：[注册页面](https://accounts.binancezh.io/zh-CN/register?ref=FJO3SX0X)（通过链接注册，享受交易返现优惠政策）
-
-
-
-## 运行环境
-python3
-
-由于交易所的api在大陆无法访问，需要科学上网。
-
+## 策略介绍
+#### 买入卖出判断：
+1. 当 kline 5 向上穿过 kline 60， 则执行买入。
+2. 当 kline 5 向下穿过 kline 60， 则执行卖出。
+3. 当没有交叉，存仓有盈利，根据盈利多少批量清仓
+#### 可控：
+1. 限制每次买入u
 
 
 ## 快速使用
