@@ -100,25 +100,3 @@ Linux, 1核CPU, 2G内存(1G也可)
 
 [阿里云，最新活动](https://www.aliyun.com/1111/new?userCode=zs5is7pi)
 
-
-
-## 钉钉信息截图
-![image](https://user-images.githubusercontent.com/18456518/119217054-3cdb3c80-bb0a-11eb-9f66-60eb974bca46.png)
-
-
-
-## 可加WX交流群
-![image](https://user-images.githubusercontent.com/18456518/170512384-a0dd25e7-6c58-4423-ab66-67ba29297dae.png)
-
-
-
-## 联系WX
-![image](https://user-images.githubusercontent.com/18456518/120063635-c5be1f00-c09a-11eb-8b48-edb2518ee5c3.png)
-
-
-
-
-
-
-# bian_market
-# bian_market
