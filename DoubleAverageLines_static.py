@@ -143,7 +143,10 @@ class DoubleAverageLines:
         # 求出均线
         maX = df['closePrice'].rolling(ma_x_line).mean()
         maY = df['closePrice'].rolling(ma_y_line).mean()
-
+        # ema
+        maX = df['closePrice'].astype(float).ewm(span=ma_x_line, min_periods=0, adjust=False, ignore_na=False).mean()
+        maY = df['closePrice'].astype(float).ewm(span=ma_y_line, min_periods=0, adjust=False, ignore_na=False).mean()
+        
         df = df[ma_y_line:]  # 这个切片很重要，否则会报错，因为数据不匹配
         # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
         maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致

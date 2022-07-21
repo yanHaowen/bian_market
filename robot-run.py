@@ -12,9 +12,9 @@ import json,os
 from strategyConfig import binance_market,binance_coinBase,binance_tradeCoin, binance_coinBase_count
 
 
-orderManager = OrderManager("USDT", 100,"DOGE", binance_market)
+orderManager = OrderManager(binance_coinBase, binance_coinBase_count, binance_tradeCoin, binance_market)
 
-orderManager_eth = OrderManager("USDT", 100,"ETH", binance_market)
+# orderManager_eth = OrderManager("USDT", 100,"ETH", binance_market)
 
 msgDing = Message()
 
