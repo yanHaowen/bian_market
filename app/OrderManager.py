@@ -327,8 +327,9 @@ class OrderManager(object):
                         cur_price = binan.get_ticker_price(self.symbol)
                         # 购买量
                         quantity = self.format_trade_quantity(coin_base_count / float(cur_price))
-                        # 购买
-                        res_order_buy = binan.buy_limit(self.symbol, quantity, cur_price)
+                        # 购买+dingding机器人提示
+                        res_order_buy = msg.buy_limit_msg(self.symbol, quantity, cur_price)
+                        # res_order_buy = binan.buy_limit(self.symbol, quantity, cur_price)
                         print("购买结果：")
                         print(res_order_buy)
 
@@ -364,8 +365,9 @@ class OrderManager(object):
                             isDefaultToken = True
                         else:
                             isDefaultToken = False
-                            # 卖出
-                            res_order_sell = binan.sell_limit(self.symbol, quantity, cur_price)
+                            # 卖出+dingding机器人提示
+                            res_order_sell = msg.sell_limit_msg(self.symbol, quantity, cur_price)
+                            # res_order_sell = binan.sell_limit(self.symbol, quantity, cur_price)
                             # 清理本地订单信息
                             self.clearOrderInfo(self.orderInfoSavePath)
                             print("出售结果：")
@@ -377,7 +379,7 @@ class OrderManager(object):
                 if isOpenSellStrategy:
                     print("开启卖出策略---1")
                     msgInfo = self.sellStrategy(self.orderInfoSavePath)
-
+                    msg.dingding_warn(msgInfo)
                 if msgInfo == "":
                     msgInfo = msgInfo + str(ts) + "\n"
                     print("暂不执行任何交易2")
