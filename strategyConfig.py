@@ -10,8 +10,8 @@ sellStrategy3 = {"profit":1.20, "sell":0.2}#盈利20%时，卖出20%的仓位
 
 
 # 均线, ma_x 要大于 ma_y
-ma_x = 5
-ma_y = 60
+# ma_x = 5
+# ma_y = 60
 
 # 币安
 binance_market = "SPOT"#现货市场

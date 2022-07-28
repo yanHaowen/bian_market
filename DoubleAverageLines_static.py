@@ -88,7 +88,7 @@ class DoubleAverageLines:
         return None
 
         
-    def release_trade_stock(self,ma_x_line, ma_y_line, code, df):
+    def release_trade_stock(self, code, df, policy_type):
 
         def get_TRIX(df,N=8,M=6):
             """三重平滑平均线
@@ -136,7 +136,6 @@ class DoubleAverageLines:
             df = df.join(MA)
             return df
         
-        print('\n' + code + ' 均线 ' + str(ma_x_line) + ' 和 ' + str(ma_y_line) + ' :')
 
         df[["openTime"]] = df[["openTime"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
         df[["openTime2"]] = df[["openTime2"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
@@ -146,22 +145,27 @@ class DoubleAverageLines:
 
         df.set_index('openTime2', inplace=True)
         df = df.sort_index(ascending=True)
-        df = get_TRIX(df,8,6)
-        # position1 =df.isnull().stack()[lambda x: x].index.tolist()  
-        df= df.dropna(axis=0,how='any')
-        maX = df['trix']
-        maY = df['trma']
-        '''
-        
-        # 求出均线
-        maX = df['closePrice'].rolling(ma_x_line).mean()
-        maY = df['closePrice'].rolling(ma_y_line).mean()
+        if(policy_type==0):
+            print("trix policy")
+            df = get_TRIX(df,8,6)
+            # position1 =df.isnull().stack()[lambda x: x].index.tolist()  
+            df= df.dropna(axis=0,how='any')
+            maX = df['trix']
+            maY = df['trma']
+        elif(policy_type==1):
+            ma_x_line = 5
+            ma_y_line = 60
+            print("ma policy")
+            # 求出均线
+            maX = df['closePrice'].rolling(ma_x_line).mean()
+            maY = df['closePrice'].rolling(ma_y_line).mean()
 
-        df = df[ma_y_line:]  # 这个切片很重要，否则会报错，因为数据不匹配
-        # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
-        maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致
-        maY = maY[ma_y_line:]  # 切片，与 df 数据条数保持一致
-        '''
+            df = df[ma_y_line:]  # 这个切片很重要，否则会报错，因为数据不匹配
+            # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
+            maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致
+            maY = maY[ma_y_line:]  # 切片，与 df 数据条数保持一致
+        else:
+            print("wrong policy code!")
 
         print("最后一行数据：")
         last_row = df.iloc[-1,:] 

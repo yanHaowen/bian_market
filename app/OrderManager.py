@@ -7,7 +7,7 @@ from app.authorization import api_key,api_secret
 from app.dingding import Message
 from DoubleAverageLines_static import DoubleAverageLines
 import schedule
-from strategyConfig import sellStrategy1, sellStrategy2, sellStrategy3 , ma_x, ma_y, isOpenSellStrategy, kLine_type
+from strategyConfig import sellStrategy1, sellStrategy2, sellStrategy3 ,  isOpenSellStrategy, kLine_type
 
 
 binan = BinanceAPI(api_key,api_secret)
@@ -48,7 +48,7 @@ class ExchangeRule(object):
 
 class OrderManager(object):
 
-    def __init__(self, coinBase, coinBaseCount , tradeCoin, market):
+    def __init__(self, coinBase, coinBaseCount , tradeCoin, market,policy):
         self.coin_base = coinBase # 基础币，例如USDT
         self.coin_base_count = coinBaseCount # 买币时最多可用资金量
         self.trade_coin = tradeCoin #买卖币种，例如 DOGER
@@ -56,6 +56,7 @@ class OrderManager(object):
         self.symbol = tradeCoin+coinBase #交易符号，例如"DOGEUSDT"
         self.exchangeRule = None
         self.orderInfoSavePath = "./"+ self.symbol +"_buyOrderInfo.json" #订单信息存储路径
+        self.policy = policy
 
     def gain_exchangeRule(self, theSymbol):
         if self.exchangeRule is None:
@@ -299,7 +300,7 @@ class OrderManager(object):
             kline_df = dALines.klinesToDataFrame(kline_list)
 
             # 判断交易方向
-            trade_direction = dALines.release_trade_stock(ma_x, ma_y, self.symbol, kline_df)
+            trade_direction = dALines.release_trade_stock(self.symbol, kline_df,self.policy)
 
             if trade_direction is not None:
 
