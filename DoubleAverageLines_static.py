@@ -88,9 +88,9 @@ class DoubleAverageLines:
         return None
 
         
-    def release_trade_stock(self, ma_x_line, ma_y_line, code, df):
+    def release_trade_stock(self,ma_x_line, ma_y_line, code, df):
 
-        def get_TRIX(df,N=12,M=20):
+        def get_TRIX(df,N=8,M=6):
             """三重平滑平均线
         原理：
             长线操作时采用本指标的讯号，可以过滤掉一些短期波动的干扰，避免交易次数过于频繁，造成部分无利润的买卖，及手续费的损失。本指标是一项超长周期的指标，长时间按照本指标讯号交易，获利百分比大于损失百分比，利润相当可观。
@@ -104,24 +104,32 @@ class DoubleAverageLines:
             2、TRIX由下向上交叉TRMA时，买进。
             3、TRIX由上向下交叉TRMA时，卖出。
             4、参考MACD用法。"""
+            
             for i in range(len(df)):
                 if i==0:
-                    df.ix[i,'ema']=df.ix[i,'close']
+                    df.loc[df.index[i],'ema']=df.loc[df.index[i],'closePrice']
                 if i>0:
-                    df.ix[i,'ema']=(2*df.ix[i-1,'close']+(N-1)*df.ix[i,'close'])/(N+1)
+                    df.loc[df.index[i],'ema']=((N-1)*float(df.loc[df.index[i-1],'ema'])+2*float(df.loc[df.index[i],'closePrice']))/(N+1)
             for i in range(len(df)):
                 if i==0:
-                    df.ix[i,'ema1']=df.ix[i,'ema']
+                    df.loc[df.index[i],'ema1']=df.loc[df.index[i],'ema']
                 if i>0:
-                    df.ix[i,'ema1']=(2*df.ix[i-1,'ema']+(N-1)*df.ix[i,'ema'])/(N+1)
+                    df.loc[df.index[i],'ema1']=((N-1)*float(df.loc[df.index[i-1],'ema1'])+(2)*float(df.loc[df.index[i],'ema']))/(N+1)
             for i in range(len(df)):
                 if i==0:
-                    df.ix[i,'tr']=df.ix[i,'ema1']
+                    df.loc[df.index[i],'tr']=df.loc[df.index[i],'ema1']
                 if i>0:
-                    df.ix[i,'tr']=(2*df.ix[i-1,'ema1']+(N-1)*df.ix[i,'ema1'])/(N+1)
+                    df.loc[df.index[i],'tr']=((N-1)*float(df.loc[df.index[i-1],'tr'])+(2)*float(df.loc[df.index[i],'ema1']))/(N+1)
+            df[['tr']] = df[['tr']].astype(float)
             trix=100*(df['tr']-df['tr'].shift(1))/df['tr'].shift(1)
-            trma=df['trix'].rolling(M).mean()
-            return trix,trma
+            trma=trix.rolling(M).mean()
+            df.drop('ema', axis=1,inplace=True)
+            df.drop('ema1', axis=1,inplace=True)
+            df.drop('tr', axis=1,inplace=True)
+            df.insert(0, 'trix', trix)
+            df.insert(0, 'trma', trma)
+            print(df.iloc[-40:])
+            return df
 
         def MA(df, n):
             MA = Series(pd.rolling_mean(df['closePrice'], n), name = 'MA_' + str(n))
@@ -132,14 +140,19 @@ class DoubleAverageLines:
 
         df[["openTime"]] = df[["openTime"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
         df[["openTime2"]] = df[["openTime2"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
-
-        # print("===========================================\n")
+        print("===========================================\n")
         df['openTime'] = pd.to_datetime(df['openTime'])
         df['openTime2'] = pd.to_datetime(df['openTime2'])
 
         df.set_index('openTime2', inplace=True)
         df = df.sort_index(ascending=True)
-
+        df = get_TRIX(df,8,6)
+        # position1 =df.isnull().stack()[lambda x: x].index.tolist()  
+        df= df.dropna(axis=0,how='any')
+        maX = df['trix']
+        maY = df['trma']
+        '''
+        
         # 求出均线
         maX = df['closePrice'].rolling(ma_x_line).mean()
         maY = df['closePrice'].rolling(ma_y_line).mean()
@@ -148,40 +161,27 @@ class DoubleAverageLines:
         # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
         maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致
         maY = maY[ma_y_line:]  # 切片，与 df 数据条数保持一致
-
-        # print("df数据行数=" +str(len(df)))
-        # print(df)
-        # 从尾部，删除1行
-        # df.drop(df.tail(1).index, inplace=True)
-
-        # print("tmp_last_df--数据切片：")
-        # for index, row in df.iterrows():
-        #     print(str(row["openTime"]) + "\t" +row["openPrice"] + "\t" +row["maxPrice"] + "\t"+row["minPrice"] + "\t"+row["closePrice"] + "\t"+str(row["closeTime"]) + "\t")
+        '''
 
         print("最后一行数据：")
-        last_row = df.iloc[-1,:] #第1行，所有列
+        last_row = df.iloc[-1,:] 
         print(str(last_row["openTime"]) + "\t" +last_row["openPrice"] + "\t" +last_row["maxPrice"] + "\t"+last_row["minPrice"] + "\t"+last_row["closePrice"] + "\t"+str(last_row["closeTime"]) + "\t")
 
         print("-------------------------------------------------------\n")
         s1 = maX < maY  # 得到 bool 类型的 Series
-        s2 = maX > maY
-
-        #短期均线向上穿越长期均线叫金叉，反之短期均线向下穿越长期均线为死叉。
-        death_ex = s1 & s2.shift(1)  # 判定死叉的条件
+        s2 = maX > maY # s2.shift(1)把数据向下移动了一位
+        
+        # death_ex = s1 & s2.shift(1)  # 判定死叉的条件：向下拐头叉下去那一天，今天穿下去了，并且昨天还在上面
+        # death_date = df.loc[death_ex].index  # 死叉对应的日期
+        death_ex = s1 & s2.shift(1)   # 判定死叉的条件：向下拐头叉下去那一天，今天穿下去了，并且昨天还在上面，并且量得够
         death_date = df.loc[death_ex].index  # 死叉对应的日期
-
         golden_ex = ~(s1 | s2.shift(1))  # 判断金叉的条件
         golden_record = df.loc[golden_ex]
         golden_date = golden_record.index  # 金叉的日期
-
         s1 = pd.Series(data=1, index=golden_date)  # 1 作为金叉的标识
         s2 = pd.Series(data=0, index=death_date)  # 0 作为死叉的标识
-
         s = s1.append(s2)  # 合并
         s = s.sort_index(ascending=True)  # 排序
-
-        # print("金叉和死叉对应的时间：")
-        # print(s)
 
         hold = 0  # 持有的股数
 
@@ -196,7 +196,7 @@ class DoubleAverageLines:
                 open_time = df.loc[time]['openTime']  # 开盘时间
                 close_time = df.loc[time]['closeTime']  # 收盘时间
 
-                # 交叉刚好在最后一个K线才执行买入（有骗炮风险，建议改成交叉后下个时间点）
+
                 isRightTime = self.judgeCurrentTimeWithLastRecordTime(str(open_time), str(close_time))
 
 
