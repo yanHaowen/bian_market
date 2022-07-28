@@ -88,7 +88,7 @@ class DoubleAverageLines:
         return None
 
         
-    def release_trade_stock(self, code, df, policy_type):
+    def release_trade_stock(self, code, policy_type,df,df2=None):
 
         def get_TRIX(df,N=8,M=6):
             """三重平滑平均线
@@ -128,14 +128,32 @@ class DoubleAverageLines:
             df.drop('tr', axis=1,inplace=True)
             df.insert(0, 'trix', trix)
             df.insert(0, 'trma', trma)
-            print(df.iloc[-40:])
-            return df
+            df= df.dropna(axis=0,how='any')
+            maX = df['trix']
+            maY = df['trma']
+            return maX,maY
 
         def MA(df, n):
             MA = Series(pd.rolling_mean(df['closePrice'], n), name = 'MA_' + str(n))
             df = df.join(MA)
             return df
-        
+        def getGoldenDeath(maX,maY):
+            s1 = maX < maY  # 得到 bool 类型的 Series
+            s2 = maX > maY # s2.shift(1)把数据向下移动了一位
+            
+            # death_ex = s1 & s2.shift(1)  # 判定死叉的条件：向下拐头叉下去那一天，今天穿下去了，并且昨天还在上面
+            # death_date = df.loc[death_ex].index  # 死叉对应的日期
+            death_ex = s1 & s2.shift(1)   # 判定死叉的条件：向下拐头叉下去那一天，今天穿下去了，并且昨天还在上面，并且量得够
+            death_date = df.loc[death_ex].index  # 死叉对应的日期
+            golden_ex = ~(s1 | s2.shift(1))  # 判断金叉的条件
+            golden_record = df.loc[golden_ex]
+            golden_date = golden_record.index  # 金叉的日期
+            s1 = pd.Series(data=1, index=golden_date)  # 1 作为金叉的标识
+            s2 = pd.Series(data=0, index=death_date)  # 0 作为死叉的标识
+            s = s1.append(s2)  # 合并
+            s = s.sort_index(ascending=True)  # 排序
+            return s
+
 
         df[["openTime"]] = df[["openTime"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
         df[["openTime2"]] = df[["openTime2"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
@@ -145,25 +163,33 @@ class DoubleAverageLines:
 
         df.set_index('openTime2', inplace=True)
         df = df.sort_index(ascending=True)
+        if df2!=None:
+            df2[["openTime"]] = df2[["openTime"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
+            df2[["openTime2"]] = df2[["openTime2"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
+            print("===========================================\n")
+            df2['openTime'] = pd.to_datetime(df2['openTime'])
+            df2['openTime2'] = pd.to_datetime(df2['openTime2'])
+
+            df2.set_index('openTime2', inplace=True)
+            df2 = df2.sort_index(ascending=True)
+        s = []
         if(policy_type==0):
             print("trix policy")
-            df = get_TRIX(df,8,6)
-            # position1 =df.isnull().stack()[lambda x: x].index.tolist()  
-            df= df.dropna(axis=0,how='any')
-            maX = df['trix']
-            maY = df['trma']
+            maX,maY = get_TRIX(df,8,6)
+            s = getGoldenDeath(maX=maX,maY=maY)
         elif(policy_type==1):
-            ma_x_line = 5
-            ma_y_line = 60
+            ma_x_line = 1
+            ma_y_line = 20 #4h
             print("ma policy")
             # 求出均线
             maX = df['closePrice'].rolling(ma_x_line).mean()
             maY = df['closePrice'].rolling(ma_y_line).mean()
-
             df = df[ma_y_line:]  # 这个切片很重要，否则会报错，因为数据不匹配
             # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
             maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致
             maY = maY[ma_y_line:]  # 切片，与 df 数据条数保持一致
+            s = getGoldenDeath(maX=maX,maY=maY)
+            
         else:
             print("wrong policy code!")
 
@@ -172,20 +198,8 @@ class DoubleAverageLines:
         print(str(last_row["openTime"]) + "\t" +last_row["openPrice"] + "\t" +last_row["maxPrice"] + "\t"+last_row["minPrice"] + "\t"+last_row["closePrice"] + "\t"+str(last_row["closeTime"]) + "\t")
 
         print("-------------------------------------------------------\n")
-        s1 = maX < maY  # 得到 bool 类型的 Series
-        s2 = maX > maY # s2.shift(1)把数据向下移动了一位
         
-        # death_ex = s1 & s2.shift(1)  # 判定死叉的条件：向下拐头叉下去那一天，今天穿下去了，并且昨天还在上面
-        # death_date = df.loc[death_ex].index  # 死叉对应的日期
-        death_ex = s1 & s2.shift(1)   # 判定死叉的条件：向下拐头叉下去那一天，今天穿下去了，并且昨天还在上面，并且量得够
-        death_date = df.loc[death_ex].index  # 死叉对应的日期
-        golden_ex = ~(s1 | s2.shift(1))  # 判断金叉的条件
-        golden_record = df.loc[golden_ex]
-        golden_date = golden_record.index  # 金叉的日期
-        s1 = pd.Series(data=1, index=golden_date)  # 1 作为金叉的标识
-        s2 = pd.Series(data=0, index=death_date)  # 0 作为死叉的标识
-        s = s1.append(s2)  # 合并
-        s = s.sort_index(ascending=True)  # 排序
+        
 
         hold = 0  # 持有的股数
 
@@ -224,6 +238,14 @@ class DoubleAverageLines:
 
                 print(str_date + "\t" + "卖出" + str(code) + "\t"+ str(round(p_death, 8)) +"---"+str(isRightTime))
                 if isRightTime:
+                    if(policy_type == 1):
+                        # 4h站上了ma20，需要1h的数据进一步辅助判断
+                        df2_1h_ma120 = df2['closePrice'].rolling(120).mean()
+                        print("4h站上ma20,现在时间:{},价格:{},4h_ma20:{},价格到4h_ma20差距为:{},1h_ma120:{},价格到1h_ma120差距为:{}".format(1,2,3,(2-3)/2),4,(2-4)/2)
+                    if(policy_type == 2):
+                        df2_4h_ma20 = df2['closePrice'].rolling(20).mean()
+                        print("1h站上ma120,现在时间:{},价格:{},4h_ma20:{},价格到4h_ma20差距为:{},1h_ma120:{},价格到1h_ma120差距为:{}".format(1,2,3,(2-3)/2),4,(2-4)/2)
+                    
                     print("release_trade_stock---sell")
                     return "sell"
 

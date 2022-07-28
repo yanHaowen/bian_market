@@ -7,7 +7,7 @@ from app.authorization import api_key,api_secret
 from app.dingding import Message
 from DoubleAverageLines_static import DoubleAverageLines
 import schedule
-from strategyConfig import sellStrategy1, sellStrategy2, sellStrategy3 ,  isOpenSellStrategy, kLine_type
+from strategyConfig import sellStrategy1, sellStrategy2, sellStrategy3 ,  isOpenSellStrategy
 
 
 binan = BinanceAPI(api_key,api_secret)
@@ -48,7 +48,7 @@ class ExchangeRule(object):
 
 class OrderManager(object):
 
-    def __init__(self, coinBase, coinBaseCount , tradeCoin, market,policy):
+    def __init__(self, coinBase, coinBaseCount , tradeCoin, market,policy,kLine_type):
         self.coin_base = coinBase # 基础币，例如USDT
         self.coin_base_count = coinBaseCount # 买币时最多可用资金量
         self.trade_coin = tradeCoin #买卖币种，例如 DOGER
@@ -57,6 +57,7 @@ class OrderManager(object):
         self.exchangeRule = None
         self.orderInfoSavePath = "./"+ self.symbol +"_buyOrderInfo.json" #订单信息存储路径
         self.policy = policy
+        self.kLine_type = kLine_type
 
     def gain_exchangeRule(self, theSymbol):
         if self.exchangeRule is None:
@@ -295,12 +296,19 @@ class OrderManager(object):
             msgInfo = msgInfo + str(ts) + "\n"
 
             # 获取K线数据
-            kline_list = self.gain_kline(self.symbol, kLine_type)
+            kline_list = self.gain_kline(self.symbol, self.kLine_type)
             # k线数据转为 DataFrame格式
             kline_df = dALines.klinesToDataFrame(kline_list)
 
-            # 判断交易方向
-            trade_direction = dALines.release_trade_stock(self.symbol, kline_df,self.policy)
+            kline_list_2 = None
+            if self.kLine_type == '1h':
+                kline_list_2 = self.gain_kline(self.symbol, '4h')
+                kline_df_2 = dALines.klinesToDataFrame(kline_list)
+            if self.kLine_type == '4h':
+                kline_list_2 = self.gain_kline(self.symbol, '1h')
+                kline_df_2 = dALines.klinesToDataFrame(kline_list)
+
+            trade_direction = dALines.release_trade_stock(self.symbol, self.policy,kline_df,kline_df_2)
 
             if trade_direction is not None:
 
