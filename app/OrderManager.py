@@ -7,7 +7,7 @@ from app.authorization import api_key,api_secret
 from app.dingding import Message
 from DoubleAverageLines_static import DoubleAverageLines
 import schedule
-from strategyConfig import sellStrategy1, sellStrategy2, sellStrategy3 , ma_x, ma_y, isOpenSellStrategy, kLine_type
+from strategyConfig import sellStrategy1, sellStrategy2, sellStrategy3 ,  isOpenSellStrategy
 
 
 binan = BinanceAPI(api_key,api_secret)
@@ -48,7 +48,7 @@ class ExchangeRule(object):
 
 class OrderManager(object):
 
-    def __init__(self, coinBase, coinBaseCount , tradeCoin, market):
+    def __init__(self, coinBase, coinBaseCount , tradeCoin, market,policy,kLine_type):
         self.coin_base = coinBase # 基础币，例如USDT
         self.coin_base_count = coinBaseCount # 买币时最多可用资金量
         self.trade_coin = tradeCoin #买卖币种，例如 DOGER
@@ -56,6 +56,8 @@ class OrderManager(object):
         self.symbol = tradeCoin+coinBase #交易符号，例如"DOGEUSDT"
         self.exchangeRule = None
         self.orderInfoSavePath = "./"+ self.symbol +"_buyOrderInfo.json" #订单信息存储路径
+        self.policy = policy
+        self.kLine_type = kLine_type
 
     def gain_exchangeRule(self, theSymbol):
         if self.exchangeRule is None:
@@ -127,6 +129,7 @@ class OrderManager(object):
                     self.writeOrderInfo(filePath, dictOrder)
                     dictOrder = self.readOrderInfo(filePath)
                     print("部分卖出--sellStrategy3")
+                    msg.dingding_warn("币种：{},k线:{},卖出理由：{}".format(self.symbol, kLine_type, "sellStrategy3"))
 
             if "sellStrategy2" in dictOrder:
                 tmpSellStrategy = dictOrder['sellStrategy2']
@@ -143,6 +146,7 @@ class OrderManager(object):
                     self.writeOrderInfo(filePath, dictOrder)
                     dictOrder = self.readOrderInfo(filePath)
                     print("部分卖出--sellStrategy2")
+                    msg.dingding_warn("币种：{},k线:{},卖出理由：{}".format(self.symbol, kLine_type, "sellStrategy2"))
 
             if "sellStrategy1" in dictOrder:
                 tmpSellStrategy = dictOrder['sellStrategy1']
@@ -160,6 +164,7 @@ class OrderManager(object):
                     self.writeOrderInfo(filePath, dictOrder)
                     dictOrder = self.readOrderInfo(filePath)
                     print("部分卖出--sellStrategy1")
+                    msg.dingding_warn("币种：{},k线:{},卖出理由：{}".format(self.symbol, kLine_type, "sellStrategy1"))
 
         return msgInfo
 
@@ -294,12 +299,19 @@ class OrderManager(object):
             msgInfo = msgInfo + str(ts) + "\n"
 
             # 获取K线数据
-            kline_list = self.gain_kline(self.symbol, kLine_type)
+            kline_list = self.gain_kline(self.symbol, self.kLine_type)
             # k线数据转为 DataFrame格式
             kline_df = dALines.klinesToDataFrame(kline_list)
 
-            # 判断交易方向
-            trade_direction = dALines.release_trade_stock(ma_x, ma_y, self.symbol, kline_df)
+            kline_list_2 = None
+            if self.kLine_type == '1h':
+                kline_list_2 = self.gain_kline(self.symbol, '4h')
+                kline_df_2 = dALines.klinesToDataFrame(kline_list)
+            if self.kLine_type == '4h':
+                kline_list_2 = self.gain_kline(self.symbol, '1h')
+                kline_df_2 = dALines.klinesToDataFrame(kline_list)
+
+            trade_direction = dALines.release_trade_stock(self.symbol, self.policy,kline_df,kline_df_2)
 
             if trade_direction is not None:
 
@@ -328,10 +340,11 @@ class OrderManager(object):
                         # 购买量
                         quantity = self.format_trade_quantity(coin_base_count / float(cur_price))
                         # 购买+dingding机器人提示
-                        res_order_buy = msg.buy_limit_msg(self.symbol, quantity, cur_price)
+                        # res_order_buy = msg.buy_limit_msg(self.symbol, quantity, cur_price)
+                        msg.dingding_warn("币种：{},k线：{},买入理由：{}".format(self.symbol, kLine_type, why))
                         # res_order_buy = binan.buy_limit(self.symbol, quantity, cur_price)
                         print("购买结果：")
-                        print(res_order_buy)
+                        # print(res_order_buy)
 
 
                         # 存储买入订单信息
@@ -366,8 +379,10 @@ class OrderManager(object):
                         else:
                             isDefaultToken = False
                             # 卖出+dingding机器人提示
-                            res_order_sell = msg.sell_limit_msg(self.symbol, quantity, cur_price)
+                            # res_order_sell = msg.sell_limit_msg(self.symbol, quantity, cur_price)
                             # res_order_sell = binan.sell_limit(self.symbol, quantity, cur_price)
+                            msg.dingding_warn("币种：{},k线：{},卖出理由{}".format(self.symbol, kLine_type, why))
+
                             # 清理本地订单信息
                             self.clearOrderInfo(self.orderInfoSavePath)
                             print("出售结果：")
@@ -379,7 +394,6 @@ class OrderManager(object):
                 if isOpenSellStrategy:
                     print("开启卖出策略---1")
                     msgInfo = self.sellStrategy(self.orderInfoSavePath)
-                    msg.dingding_warn(msgInfo)
                 if msgInfo == "":
                     msgInfo = msgInfo + str(ts) + "\n"
                     print("暂不执行任何交易2")
