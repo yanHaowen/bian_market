@@ -342,6 +342,7 @@ class OrderManager(object):
                         # 购买+dingding机器人提示
                         # res_order_buy = msg.buy_limit_msg(self.symbol, quantity, cur_price)
                         msg.dingding_warn("币种：{},k线：{},买入理由：{}".format(self.symbol, kLine_type, why))
+
                         # res_order_buy = binan.buy_limit(self.symbol, quantity, cur_price)
                         print("购买结果：")
                         # print(res_order_buy)
@@ -383,6 +384,7 @@ class OrderManager(object):
                             # res_order_sell = binan.sell_limit(self.symbol, quantity, cur_price)
                             msg.dingding_warn("币种：{},k线：{},卖出理由{}".format(self.symbol, kLine_type, why))
 
+
                             # 清理本地订单信息
                             self.clearOrderInfo(self.orderInfoSavePath)
                             print("出售结果：")
@@ -394,6 +396,7 @@ class OrderManager(object):
                 if isOpenSellStrategy:
                     print("开启卖出策略---1")
                     msgInfo = self.sellStrategy(self.orderInfoSavePath)
+
                 if msgInfo == "":
                     msgInfo = msgInfo + str(ts) + "\n"
                     print("暂不执行任何交易2")

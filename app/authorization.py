@@ -2,8 +2,9 @@
 # https://www.binance.com/restapipub.html
 
 # 测试账号
-api_key = 'xsO8UAiJh6zndmtDk1kDfMikZnZ2XiDoSjjeugtiNa6fily4XveiwfEQD0wwlwJC'
-api_secret = 'QdnFP8kWz8yo8kYoRbv1OMKwap1NOjcTPR7CkEWYKsv2hx3goS9ca9Cv9pSTthmU'
+
+api_key = ''
+api_secret = ''
 
 recv_window = 5000
 
