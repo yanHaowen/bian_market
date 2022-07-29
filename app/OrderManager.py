@@ -129,7 +129,6 @@ class OrderManager(object):
                     self.writeOrderInfo(filePath, dictOrder)
                     dictOrder = self.readOrderInfo(filePath)
                     print("部分卖出--sellStrategy3")
-                    msg.dingding_warn("币种：{},k线:{},卖出理由：{}".format(self.symbol, kLine_type, "sellStrategy3"))
 
             if "sellStrategy2" in dictOrder:
                 tmpSellStrategy = dictOrder['sellStrategy2']
@@ -146,7 +145,6 @@ class OrderManager(object):
                     self.writeOrderInfo(filePath, dictOrder)
                     dictOrder = self.readOrderInfo(filePath)
                     print("部分卖出--sellStrategy2")
-                    msg.dingding_warn("币种：{},k线:{},卖出理由：{}".format(self.symbol, kLine_type, "sellStrategy2"))
 
             if "sellStrategy1" in dictOrder:
                 tmpSellStrategy = dictOrder['sellStrategy1']
@@ -164,7 +162,6 @@ class OrderManager(object):
                     self.writeOrderInfo(filePath, dictOrder)
                     dictOrder = self.readOrderInfo(filePath)
                     print("部分卖出--sellStrategy1")
-                    msg.dingding_warn("币种：{},k线:{},卖出理由：{}".format(self.symbol, kLine_type, "sellStrategy1"))
 
         return msgInfo
 
@@ -302,6 +299,7 @@ class OrderManager(object):
             kline_list = self.gain_kline(self.symbol, self.kLine_type)
             # k线数据转为 DataFrame格式
             kline_df = dALines.klinesToDataFrame(kline_list)
+            kline_df_2 = None
 
             kline_list_2 = None
             if self.kLine_type == '1h':
@@ -311,7 +309,7 @@ class OrderManager(object):
                 kline_list_2 = self.gain_kline(self.symbol, '1h')
                 kline_df_2 = dALines.klinesToDataFrame(kline_list)
 
-            trade_direction = dALines.release_trade_stock(self.symbol, self.policy,kline_df,kline_df_2)
+            trade_direction,signal_msg = dALines.release_trade_stock(self.symbol, self.policy,kline_df,kline_df_2)
 
             if trade_direction is not None:
 
@@ -324,88 +322,19 @@ class OrderManager(object):
                         isDefaultToken = True
                     else:
                         isDefaultToken = False
-
-                        # coin_base = "USDT"
-                        asset_coin = binan.get_spot_asset_by_symbol(self.coin_base)
-                        print(self.coin_base + " 资产："+str(asset_coin))
-
-                        # 购买，所用资金量
-                        coin_base_count = float(asset_coin["free"])
-                        if self.coin_base_count <= coin_base_count:
-                            coin_base_count = self.coin_base_count
-
-                        print("binance_func--可用资金量coin_base_count= "+str(coin_base_count))
-                        # 查询当前价格
-                        cur_price = binan.get_ticker_price(self.symbol)
-                        # 购买量
-                        quantity = self.format_trade_quantity(coin_base_count / float(cur_price))
-                        # 购买+dingding机器人提示
-                        # res_order_buy = msg.buy_limit_msg(self.symbol, quantity, cur_price)
-                        msg.dingding_warn("币种：{},k线：{},买入理由：{}".format(self.symbol, kLine_type, why))
-
-                        # res_order_buy = binan.buy_limit(self.symbol, quantity, cur_price)
-                        print("购买结果：")
-                        # print(res_order_buy)
-
-
-                        # 存储买入订单信息
-                        if res_order_buy is not None and "symbol" in res_order_buy:
-                            res_order_buy["toBuy"] = trade_direction
-                            self.writeOrderInfoWithSellStrategy(self.orderInfoSavePath, res_order_buy)
-
-                        order_result_str = self.printOrderJsonInfo(res_order_buy)
-                        msgInfo = "购买结果：\n" + order_result_str
-
-                elif trade_direction == "sell":
-                    dictOrder = self.readOrderInfo(self.orderInfoSavePath)
-
-
-                    if dictOrder is None:
-                        msgInfo = msgInfo + "服务正常4--已无可售"
-                        isDefaultToken = True
-                    else:
-
-                        asset_coin = binan.get_spot_asset_by_symbol(self.trade_coin)
-                        print(self.trade_coin + " 资产：")
-                        print(asset_coin)
-
-                        quantity = self.format_trade_quantity(float(asset_coin["free"]))
-
-                        # 查询当前价格
-                        cur_price = binan.get_ticker_price(self.symbol)
-
-                        if quantity<=0:
-                            msgInfo = msgInfo + "服务正常5--已无可售"
-                            isDefaultToken = True
-                        else:
-                            isDefaultToken = False
-                            # 卖出+dingding机器人提示
-                            # res_order_sell = msg.sell_limit_msg(self.symbol, quantity, cur_price)
-                            # res_order_sell = binan.sell_limit(self.symbol, quantity, cur_price)
-                            msg.dingding_warn("币种：{},k线：{},卖出理由{}".format(self.symbol, kLine_type, why))
-
-
-                            # 清理本地订单信息
-                            self.clearOrderInfo(self.orderInfoSavePath)
-                            print("出售结果：")
-                            print(res_order_sell)
-                            order_result_str = self.printOrderJsonInfo(res_order_sell)
-                            msgInfo = "卖出结果：\n" + str(order_result_str)
+                        msgInfo = "warning:\n" + signal_msg #好像在这里加了就可以了
+                else:
+                    msgInfo = msgInfo + "服务正常4"
+                    isDefaultToken = True
 
             else:
-                if isOpenSellStrategy:
-                    print("开启卖出策略---1")
-                    msgInfo = self.sellStrategy(self.orderInfoSavePath)
-
-                if msgInfo == "":
-                    msgInfo = msgInfo + str(ts) + "\n"
-                    print("暂不执行任何交易2")
-                    msgInfo = msgInfo + "服务正常2"
-                    isDefaultToken = True
+                print("暂不执行任何交易2")
+                msgInfo = msgInfo + "服务正常2"
+                isDefaultToken = True
 
             print("-----------------------------------------------\n")
         except Exception as ex:
-            err_str = "出现如下异常：%s" % ex
+            err_str = "warning: 出现如下异常：%s" % ex
             print(err_str)
             msgInfo = msgInfo + str(err_str) + "\n"
 

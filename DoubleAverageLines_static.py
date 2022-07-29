@@ -131,13 +131,14 @@ class DoubleAverageLines:
             df= df.dropna(axis=0,how='any')
             maX = df['trix']
             maY = df['trma']
-            return maX,maY
+            print(maX[-1],maY[-1])
+            return df,maX,maY
 
         def MA(df, n):
             MA = Series(pd.rolling_mean(df['closePrice'], n), name = 'MA_' + str(n))
             df = df.join(MA)
             return df
-        def getGoldenDeath(maX,maY):
+        def getGoldenDeath(df,maX,maY):
             s1 = maX < maY  # 得到 bool 类型的 Series
             s2 = maX > maY # s2.shift(1)把数据向下移动了一位
             
@@ -154,6 +155,7 @@ class DoubleAverageLines:
             s = s.sort_index(ascending=True)  # 排序
             return s
 
+
         df[["openTime"]] = df[["openTime"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
         df[["openTime2"]] = df[["openTime2"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
         print("===========================================\n")
@@ -162,7 +164,7 @@ class DoubleAverageLines:
 
         df.set_index('openTime2', inplace=True)
         df = df.sort_index(ascending=True)
-        if df2!=None:
+        if df2 is not None:
             df2[["openTime"]] = df2[["openTime"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
             df2[["openTime2"]] = df2[["openTime2"]].astype(str)  # int类型 转换 成str类型，否则会被当做时间戳使用，造成时间错误
             print("===========================================\n")
@@ -174,8 +176,9 @@ class DoubleAverageLines:
         s = []
         if(policy_type==0):
             print("trix policy")
-            maX,maY = get_TRIX(df,8,6)
-            s = getGoldenDeath(maX=maX,maY=maY)
+            df,maX,maY = get_TRIX(df,8,6)
+
+            s = getGoldenDeath(df=df,maX=maX,maY=maY)
         elif(policy_type==1):
             ma_x_line = 1
             ma_y_line = 20 #4h
@@ -187,7 +190,19 @@ class DoubleAverageLines:
             # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
             maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致
             maY = maY[ma_y_line:]  # 切片，与 df 数据条数保持一致
-            s = getGoldenDeath(maX=maX,maY=maY)
+            s = getGoldenDeath(df=df,maX=maX,maY=maY)
+        elif(policy_type==2):
+            ma_x_line = 1
+            ma_y_line = 120 #1h
+            print("ma policy")
+            # 求出均线
+            maX = df['closePrice'].rolling(ma_x_line).mean()
+            maY = df['closePrice'].rolling(ma_y_line).mean()
+            df = df[ma_y_line:]  # 这个切片很重要，否则会报错，因为数据不匹配
+            # 因为 ma_x_line < ma_y_line ,所以均线 切到 ma_y_line
+            maX = maX[ma_y_line:]  # 切片，与 df 数据条数保持一致
+            maY = maY[ma_y_line:]  # 切片，与 df 数据条数保持一致
+            s = getGoldenDeath(df=df,maX=maX,maY=maY)
             
         else:
             print("wrong policy code!")
@@ -203,7 +218,7 @@ class DoubleAverageLines:
         hold = 0  # 持有的股数
 
         trade_buy_price = 0
-
+        signal_msg = ""
         for i in range(0, len(s)):
 
             if s[i] == 1:
@@ -220,10 +235,32 @@ class DoubleAverageLines:
                 # print(open_price)
                 trade_buy_price = close_price  # 记录买入的价格
                 str_date = str(time)
-                print(str_date + "\t" + "买入" + code + "\t" + str(round(close_price, 8))+"---"+str(isRightTime))
+                # print(str_date + "\t" + "买入" + code + "\t" + str(round(close_price, 8))+"---"+str(isRightTime))
                 if isRightTime:
+                    if (policy_type==0):
+                        signal_msg =  code + " 日线trix金叉"
+                    elif(policy_type == 1):
+                        # 4h站上了ma20，需要1h的数据进一步辅助判断
+                        df2_1h_ma120 = df2['closePrice'].rolling(120).mean()
+                        time_temp = str_date #其实是开盘价
+                        price_temp = df2.loc[df2.index[-1],'closePrice']
+                        price_4h_ma20 = maY[-1]
+                        gap_1 = (float(price_temp) - float(price_4h_ma20)) / float(price_temp)
+                        price_1h_ma120 = df2_1h_ma120[-1]
+                        gap_2 = (float(price_temp) - float(price_1h_ma120)) / float(price_temp)
+                        signal_msg =  code + " 4h站上ma20,现在时间:{},价格:{},4h_ma20:{},价格到4h_ma20差距为:{},1h_ma120:{},价格到1h_ma120差距为:{}".format(time_temp,price_temp,price_4h_ma20,gap_1,price_1h_ma120,gap_2)
+                    elif(policy_type == 2):
+                        df2_4h_ma20 = df2['closePrice'].rolling(20).mean()
+                        time_temp = str_date #其实是开盘价
+                        price_temp = df2.loc[df2.index[-1],'closePrice']
+                        price_4h_ma20 = df2_4h_ma20[-1]
+                        gap_1 = (float(price_temp) - float(price_4h_ma20)) / float(price_temp)
+                        price_1h_ma120 = maY[-1]
+                        gap_2 = (float(price_temp) - float(price_1h_ma120)) / float(price_temp)
+                        signal_msg =  code + " 4h站上ma20,现在时间:{},价格:{},4h_ma20:{},价格到4h_ma20差距为:{},1h_ma120:{},价格到1h_ma120差距为:{}".format(time_temp,price_temp,price_4h_ma20,gap_1,price_1h_ma120,gap_2)
+                    
                     print("release_trade_stock---buy")
-                    return "buy,"+str(open_time)
+                    return "buy,"+str(open_time), signal_msg
 
             else:
                 # 卖出股票的单价
@@ -235,22 +272,16 @@ class DoubleAverageLines:
                 close_time = df.loc[death_time]['closeTime']  # 收盘时间
                 isRightTime = self.judgeCurrentTimeWithLastRecordTime(str(open_time), str(close_time))
 
-                print(str_date + "\t" + "卖出" + str(code) + "\t"+ str(round(p_death, 8)) +"---"+str(isRightTime))
+                # print(str_date + "\t" + "卖出" + str(code) + "\t"+ str(round(p_death, 8)) +"---"+str(isRightTime))
                 if isRightTime:
-                    if(policy_type == 1):
-                        # 4h站上了ma20，需要1h的数据进一步辅助判断
-                        df2_1h_ma120 = df2['closePrice'].rolling(120).mean()
-                        print("4h站上ma20,现在时间:{},价格:{},4h_ma20:{},价格到4h_ma20差距为:{},1h_ma120:{},价格到1h_ma120差距为:{}".format(1,2,3,(2-3)/2),4,(2-4)/2)
-                    if(policy_type == 2):
-                        df2_4h_ma20 = df2['closePrice'].rolling(20).mean()
-                        print("1h站上ma120,现在时间:{},价格:{},4h_ma20:{},价格到4h_ma20差距为:{},1h_ma120:{},价格到1h_ma120差距为:{}".format(1,2,3,(2-3)/2),4,(2-4)/2)
                     
                     print("release_trade_stock---sell")
-                    return "sell"
+                    # return "sell",None
+                    return None,None
 
         print("release_trade_stock---None")
 
-        return None
+        return None,None
 
 
 

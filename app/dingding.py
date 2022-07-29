@@ -40,11 +40,11 @@ class Message:
 
     def dingding_warn(self,text, isDefaultToken=True):
         tmpToken = dingding_token if isDefaultToken else dingding_token2
+        # print(tmpToken)
         headers = {'Content-Type': 'application/json;charset=utf-8'}
         api_url = "https://oapi.dingtalk.com/robot/send?access_token=%s" % tmpToken
-        print("api_url=")
-        print(api_url)
         json_text = self._msg(text+"\n______")
+        print(json_text)
         response = requests.post(api_url, json.dumps(json_text), headers=headers).content
         print(response)
 
