@@ -11,6 +11,8 @@ import math
 import json,os
 from strategyConfig import binance_market,binance_coinBase,binance_tradeCoin, binance_coinBase_count
 
+# 0 is trix, 1 is max_y
+orderManager = OrderManager("USDT", 100,"DOGE", binance_market,0,"1d")
 
 orderManager = OrderManager(binance_coinBase, binance_coinBase_count, binance_tradeCoin, binance_market)
 
@@ -29,8 +31,10 @@ def sendInfoToDingDing( message, isDefaultToken):
 
 def binance_func():
     orderManager.binance_func()
-    # time.sleep(5)
-    # orderManager_eth.binance_func()
+    time.sleep(5)
+    orderManager_eth_4h.binance_func()
+    time.sleep(5)
+    orderManager_eth_1h.binance_func()
 
 
 def sendServiceInfo():
